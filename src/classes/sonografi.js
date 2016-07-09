@@ -84,7 +84,7 @@ class Sonografi {
         this.ocean = this.makeSphere(1.3, 5, Shaders.vertex.wavy, Shaders.pixel.oceanic, THREE.FrontSide, true);
         this.ocean.renderOrder = 2;
         this.viewport.scene.add(this.sky, this.ocean);
-        this.loadModel('./models/earth.stl', 1.3, Shaders.vertex.extruded, Shaders.pixel.disco, THREE.FrontSide, true)
+        this.loadModel('./models/earth.stl', 1.3, Shaders.vertex.extruded, Shaders.pixel.disco, THREE.DoubleSide, true)
             .then(function (model) {
 
                 // Add the Earth
