@@ -1,5 +1,5 @@
 /**
- * Sonografi, v1.0.0
+ * Sonografi, v1.1.0
  *
  * Description: Audio visualizer webapp made of ES2015 and WebGL.
  * License: GPLv3 http://www.gnu.org/licenses/gpl-3.0.html

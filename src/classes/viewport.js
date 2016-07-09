@@ -14,6 +14,7 @@ class Viewport {
      * Creates a viewport object in a given canvas.
      * Functions defined in the constructor have local/private variable access.
      * @todo make adjustments on resize see http://raathigesh.com/Audio-Visualization-with-Web-Audio-and-ThreeJS/
+     * @todo controls zoom limits
      *
      * @param  {HTMLElement}    canvas     Canvas DOM element to attach to
      * @param  {Number|String}  color      Background color in a format accepted by Three.js renderer
@@ -44,7 +45,7 @@ class Viewport {
         this.renderer = new THREE.WebGLRenderer({canvas: canvas, alpha: true});
         this.renderer.setClearColor(color, opacity);
         this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, true);  // True = autoresize on
-        this.camera.position.z = 3.3;
+        this.camera.position.z = 4.0;
 
         // Start viewport animation loop
         this.startAnimationLoop();

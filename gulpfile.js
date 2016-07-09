@@ -12,7 +12,7 @@ gulp.task('default', ['static', 'js'], function() {});
 gulp.task('watch', function() {
 
     gulp.watch(['./src/app.js', './src/classes/**/*.js'], ['js']);
-    gulp.watch(['./src/index.html', './src/styles/**/*.css'], ['static']);
+    gulp.watch(['./src/index.html', './src/styles/**/*.css', './src/models/**/*.*'], ['static']);
 });
 
 // Copy static files

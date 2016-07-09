@@ -15,122 +15,6 @@ class Shaders {
  */
 Shaders.libs = {};
 
-/**
- * GLSL textureless classic 2D noise "cnoise",
- * with an RSL-style periodic variant "pnoise".
- * Author:  Stefan Gustavson (stefan.gustavson@liu.se)
- * Version: 2011-08-22
- *
- * Many thanks to Ian McEwan of Ashima Arts for the
- * ideas for permutation and gradient selection.
- *
- * Copyright (c) 2011 Stefan Gustavson. All rights reserved.
- * Distributed under the MIT license. See LICENSE file.
- * https://github.com/stegu/webgl-noise
- */
-Shaders.libs.classicnoise2D = `
-    
-    vec4 mod289(vec4 x)
-    {
-      return x - floor(x * (1.0 / 289.0)) * 289.0;
-    }
-    
-    vec4 permute(vec4 x)
-    {
-      return mod289(((x*34.0)+1.0)*x);
-    }
-    
-    vec4 taylorInvSqrt(vec4 r)
-    {
-      return 1.79284291400159 - 0.85373472095314 * r;
-    }
-    
-    vec2 fade(vec2 t) {
-      return t*t*t*(t*(t*6.0-15.0)+10.0);
-    }
-    
-    // Classic Perlin noise
-    float cnoise(vec2 P)
-    {
-      vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
-      vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
-      Pi = mod289(Pi); // To avoid truncation effects in permutation
-      vec4 ix = Pi.xzxz;
-      vec4 iy = Pi.yyww;
-      vec4 fx = Pf.xzxz;
-      vec4 fy = Pf.yyww;
-    
-      vec4 i = permute(permute(ix) + iy);
-    
-      vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0 ;
-      vec4 gy = abs(gx) - 0.5 ;
-      vec4 tx = floor(gx + 0.5);
-      gx = gx - tx;
-    
-      vec2 g00 = vec2(gx.x,gy.x);
-      vec2 g10 = vec2(gx.y,gy.y);
-      vec2 g01 = vec2(gx.z,gy.z);
-      vec2 g11 = vec2(gx.w,gy.w);
-    
-      vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
-      g00 *= norm.x;  
-      g01 *= norm.y;  
-      g10 *= norm.z;  
-      g11 *= norm.w;  
-    
-      float n00 = dot(g00, vec2(fx.x, fy.x));
-      float n10 = dot(g10, vec2(fx.y, fy.y));
-      float n01 = dot(g01, vec2(fx.z, fy.z));
-      float n11 = dot(g11, vec2(fx.w, fy.w));
-    
-      vec2 fade_xy = fade(Pf.xy);
-      vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
-      float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
-      return 2.3 * n_xy;
-    }
-    
-    // Classic Perlin noise, periodic variant
-    float pnoise(vec2 P, vec2 rep)
-    {
-      vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
-      vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
-      Pi = mod(Pi, rep.xyxy); // To create noise with explicit period
-      Pi = mod289(Pi);        // To avoid truncation effects in permutation
-      vec4 ix = Pi.xzxz;
-      vec4 iy = Pi.yyww;
-      vec4 fx = Pf.xzxz;
-      vec4 fy = Pf.yyww;
-    
-      vec4 i = permute(permute(ix) + iy);
-    
-      vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0 ;
-      vec4 gy = abs(gx) - 0.5 ;
-      vec4 tx = floor(gx + 0.5);
-      gx = gx - tx;
-    
-      vec2 g00 = vec2(gx.x,gy.x);
-      vec2 g10 = vec2(gx.y,gy.y);
-      vec2 g01 = vec2(gx.z,gy.z);
-      vec2 g11 = vec2(gx.w,gy.w);
-    
-      vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
-      g00 *= norm.x;  
-      g01 *= norm.y;  
-      g10 *= norm.z;  
-      g11 *= norm.w;  
-    
-      float n00 = dot(g00, vec2(fx.x, fy.x));
-      float n10 = dot(g10, vec2(fx.y, fy.y));
-      float n01 = dot(g01, vec2(fx.z, fy.z));
-      float n11 = dot(g11, vec2(fx.w, fy.w));
-    
-      vec2 fade_xy = fade(Pf.xy);
-      vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
-      float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
-      return 2.3 * n_xy;
-    }
-`;
-
 /////////////////////
 // Vertex shaders //
 ///////////////////
@@ -160,6 +44,7 @@ Shaders.vertex.wavy = `
     uniform float time;
     uniform float amplitude;
     varying vec3 vNormal;
+    varying vec3 vWorldNormal;
     
     // Pseudorandom function
     float pRandom (vec3 coords) {
@@ -167,10 +52,13 @@ Shaders.vertex.wavy = `
     }
 
     void main() {
-        vNormal = normal;
-        const float waveHeight = 0.01;
-        const float waveRes = 25.0;
-        const float speed = 2.0;
+        vNormal = normal;                 // Vertex normal
+        vec4 worldNormal4 = modelMatrix * vec4(normal, 1.0);  
+        vWorldNormal = worldNormal4.xyz;  // World space normal
+        
+        const float waveHeight = 0.01;  // Wave height
+        const float waveRes = 25.0;     // Wave resolution
+        const float speed = 2.0;        // Wave movement speed
         
         vec3 pos = position + normal * waveHeight
             * (
@@ -184,43 +72,14 @@ Shaders.vertex.wavy = `
 `;
 
 /**
- * Ragged waves
- */
-Shaders.vertex.ragged = `
-    varying vec3 vNormal;
-    uniform float time;
-    uniform float amplitude;
-    
-    // Pseudorandom function
-    float pRandom (vec3 coords) {
-        return fract(sin(dot(coords.xyz, vec3(12.9898, 78.233, 12.9898))) * 43758.5453);
-    }
-
-    void main() {
-        vNormal = normal;
-        float waveHeight = 0.04;
-        float waveRes = 25.0;
-        
-        vec3 pos = position + normal * waveHeight * 0.01 * pow(amplitude, 3.0)
-            * (
-                sin(position.x * waveRes + 0.0 + time + 0.1 * amplitude)
-                + cos(position.y * waveRes + 3.0 + time + 0.1 * amplitude)
-                + cos(position.z * waveRes + 6.0 + time + 0.1 * amplitude)
-            )
-            * sin(pRandom(position));
-             
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-    }
-`;
-
-/**
- * Face extrusion
+ * Outward face extrusion
  */
 Shaders.vertex.extruded = `
     varying vec3 vNormal;
     uniform float time;
     uniform float amplitude;
     uniform vec3 earthOrigin;
+    varying vec3 vPosition;
     
     // Pseudorandom function
     float pRandom (vec3 coords) {
@@ -228,38 +87,24 @@ Shaders.vertex.extruded = `
     }
 
     void main() {
-        vNormal = normal;
+        vNormal = normal;      // Vertex normal
+        vPosition = position;  // Vertex position
         const float extrudeHeight = 2.5;
         vec3 finalPosition;
         
-        // Radius vector starting at object origin and pointing towards current vertex
+        // Radius vector starting at object origin and pointing towards the current vertex
         // We will use it to detect vertices whose normals point outwards 
         vec3 refNormal = normalize(position - earthOrigin);
         
         // Extrude faces whose normals point outwards
         if (length(refNormal - normal) < 1.4) {
-            finalPosition = position + normal * pow(amplitude, 2.0) * extrudeHeight / 900.0;
+            finalPosition = position + refNormal * pow(amplitude, 3.0) * extrudeHeight / 4096.0;
             // finalPosition = position + normal * pow(amplitude, 2.0) * extrudeHeight * sin(pRandom(position)) / 900.0;
         } else {
             finalPosition = position;
         }
              
         gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPosition, 1.0);
-    }
-`;
-
-/**
- * Pulsating
- */
-Shaders.vertex.pulsating = `
-    uniform float amplitude;
-    varying vec3 vNormal;
-
-    void main() {
-        vNormal = normal;
-        
-        vec3 pos = position + normal * amplitude / 64.0; 
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
     }
 `;
 
@@ -275,129 +120,12 @@ Shaders.vertex.pulsating = `
 Shaders.pixel = {};  // Pixel shaders
 
 /**
- * Sunlike
+ * Waterlike legacy
  */
-Shaders.pixel.sunny = `
-    varying vec3 vNormal;
-    uniform float time;
-    
-    void main() {
-    
-        vec3 ambientLight = vec3(0.2, 0.2, 0.0);  // Ambient yellow
-        
-        // Positional light data type
-        struct Light {
-            vec3 position;      // Position in 3D
-            vec3 color;         // Color code
-            float illumFactor;  // How much this light shines upon current pixel
-        };
-        
-        
-        // Define positional lights
-        Light lights[5];
-        
-        lights[0].position = normalize(vec3(0.0,  1.0,  0.5));  // Top
-        lights[1].position = normalize(vec3(0.0, -1.0,  0.5));  // Bottom
-        lights[2].position = normalize(vec3(0.0,  0.0,  1.0));  // Front
-        lights[3].position = normalize(vec3(1.0,  0.0, -0.5));  // Right
-        lights[4].position = normalize(vec3(-1.0, 0.0, -0.5));  // Left
-        
-        lights[0].color = vec3(1.0, 0.0, 0.0);  // Red
-        lights[1].color = vec3(1.0, 0.5, 0.0);  // Orange
-        lights[2].color = vec3(0.35, 0.35, 0.0);  // Yellow   
-        lights[3].color = vec3(0.0, 1.0, 0.0);  // Green
-        lights[4].color = vec3(1.0, 0.0, 1.0);  // Violet
-        
-        // Compute light illumination factors for every light
-        for (int i = 0; i < 5; i++) {
-            lights[i].illumFactor = max(0.0, dot(vNormal, lights[i].position));
-        }
-        
-        // Reduce everything to a color vector by multiplying R, G & B components of lights
-        // by their illumination factors and adding it all up
-        vec3 illum = vec3(0.0);
-        for (int n = 0; n < 3; n++) {
-            for (int i = 0; i < 5; i++) {
-                illum[n] += lights[i].color[n] * lights[i].illumFactor;
-            }
-        }
-        
-        // Add ambient light and output
-        illum = illum + ambientLight;
-        gl_FragColor = vec4(illum, 1.0);
-    }
-`;
-
-/**
- * Waterlike naive
- */
-Shaders.pixel.oceanicLow = `
-    varying vec3 vNormal;
-    uniform float time;
-    
-    void main() {
-    
-        vec3 ambientLight = vec3(0.2, 0.2, 0.0);  // Ambient yellow
-        
-        // Positional light data type
-        struct Light {
-            vec3 position;      // Position in 3D
-            vec3 color;         // Color code
-            float illumFactor;  // How much this light shines upon current pixel
-        };
-        
-        
-        // Define positional lights
-        Light lights[6];
-        
-        vec3 cyan = vec3(0.0, 0.5, 0.5);
-        vec3 blue = vec3(0.0, 0.0, 1.0);
-        vec3 black = vec3(0.0, 0.0, 0.0);
-        
-        lights[0].position = normalize(vec3(0.0,  1.0,  0.0));   // Top
-        lights[1].position = normalize(vec3(0.0, -1.0,  0.0));   // Bottom
-        lights[2].position = normalize(vec3(0.0,  0.0,  1.0));   // Front
-        lights[3].position = normalize(vec3(0.0,  0.0,  -1.0));  // Back
-        lights[4].position = normalize(vec3(1.0,  0.0, 0.0));    // Right
-        lights[5].position = normalize(vec3(-1.0, 0.0, 0.0));    // Left
-        
-        lights[0].color = cyan;
-        lights[1].color = blue;
-        lights[2].color = blue;
-        lights[3].color = blue;
-        lights[4].color = blue;
-        lights[5].color = cyan;
-        
-        // Compute light illumination factors for every light
-        for (int i = 0; i < 6; i++) {
-            lights[i].illumFactor = max(0.0, dot(vNormal, lights[i].position));
-        }
-        
-        // Reduce everything to a color vector by multiplying R, G & B components of lights
-        // by their illumination factors and adding it all up
-        vec3 illum = vec3(0.0);
-        for (int n = 0; n < 3; n++) {
-            for (int i = 0; i < 6; i++) {
-                illum[n] += lights[i].color[n] * lights[i].illumFactor;
-            }
-        }
-        
-        // Add ambient light and output
-        illum = illum + ambientLight;
-        gl_FragColor = vec4(illum, 1.0);
-    }
-`;
-
-
-
-/**
- * Waterlike
- */
-Shaders.pixel.oceanic = `
+Shaders.pixel.oceanicMid = `
     varying vec3 vNormal;
     uniform float time;
     uniform float screenHeight;
-    varying vec4 vVertexPosition;
     
     void main() {
     
@@ -450,8 +178,57 @@ Shaders.pixel.oceanic = `
         // Add ambient light and output
         illum = illum + ambientLight;
         gl_FragColor = vec4(illum, 0.8);
+    }
+`;
+
+/**
+ * Waterlike, with depth
+ * @todo make water under camera transparent too, z-clip stuff perhaps
+ */
+Shaders.pixel.oceanic = `
+
+    const int gradientColorCount = 4;  // Number of gradient colors in use
+    
+    uniform float time;
+    uniform float screenHeight;
+    uniform vec3 oceanOrigin;                         // Object center in world space
+    uniform vec3 gradientColors[gradientColorCount];  // Array of colors for radial gradient
+    uniform float gradientStops[gradientColorCount];  // Color positions for radial gradient 
+    varying vec3 vNormal;                             // Surface normal in object space
+    varying vec3 vWorldNormal;                        // Surface normal in world space
+    
+    void main() {
+    
+        float depth;           // Apparent water depth at point
+        float gradientPoint;   // Position of the current point within the gradient, 0..1
+        vec3 gradientFactors;  // How much of every gradient color is at this point 
+        vec3 gradient;         // Computed gradient color for current pixel
+        // vec3 ambientLight = vec3(0.0, 0.0, 0.1);  // Ambient lighting to add
+        vec3 ambientLight = vec3(0.0);  // Ambient lighting to add
+    
+        vec3 cameraDirection = normalize(cameraPosition - oceanOrigin);  // Points from object center to camera
+        depth = 1.0 - length(vWorldNormal - cameraDirection);  // Depth increases towards object center
+        gradientPoint = (1.0 - depth);                                   // Gradient goes from depth to shallow
         
-        // gl_FragColor = eyePos;
+        // Compute gradient factors based on gradient stops and current point's position 
+        for (int grad = 0; grad < gradientColorCount; grad++) {
+            gradientFactors[grad] = 1.0 - abs(gradientStops[grad] - gradientPoint);
+        }
+        
+        // Compute gradient by multiplying R, G & B components of gradient colors
+        // by their gradient factors and adding it all up
+        for (int col = 0; col < 3; col++) {
+            for (int grad = 0; grad < gradientColorCount; grad++) {
+                gradient[col] += gradientColors[grad][col] * gradientFactors[grad];
+            }
+        }
+   
+        // Add ambient light and depth, and output
+        // First, remove colot from the deep parts, then replace it with the depthColor
+        // illum = illum * (1.0 - depth) + depth * depthColor;
+        // illum = (illum + ambientLight) * 2.0 * (1.0 - depth) + depth * depthColor;
+        // gl_FragColor = vec4(illum, 1.0);
+        gl_FragColor = vec4(gradient + ambientLight, pow(depth, 0.8) * 4.0);
     }
 `;
 
@@ -461,8 +238,17 @@ Shaders.pixel.oceanic = `
 Shaders.pixel.disco = `
     varying vec3 vNormal;
     uniform float time;
+    uniform vec3 earthOrigin;
+    varying vec3 vPosition;
     
     void main() {
+    
+        // Radius vector starting at object origin and pointing towards the current vertex
+        // We will use it to determine illumination factor for every light 
+        vec3 refNormal = normalize(vPosition - earthOrigin);
+        
+        float opacity = 1.0;  // Pixel opacity
+        float shadow  = 0.0;  // Simple fake shadow modifier
     
         vec3 ambientLight = vec3(0.2, 0.2, 0.0);  // Ambient yellow
         
@@ -472,7 +258,6 @@ Shaders.pixel.disco = `
             vec3 color;         // Color code
             float illumFactor;  // How much this light shines upon current pixel
         };
-        
         
         // Define positional lights
         Light lights[5];
@@ -497,7 +282,7 @@ Shaders.pixel.disco = `
         
         // Compute light illumination factors for every light
         for (int i = 0; i < 5; i++) {
-            lights[i].illumFactor = max(0.0, dot(vNormal, lights[i].position));
+            lights[i].illumFactor = max(0.0, dot(refNormal, lights[i].position));
         }
         
         // Reduce everything to a color vector by multiplying R, G & B components of lights
@@ -509,37 +294,24 @@ Shaders.pixel.disco = `
             }
         }
         
-        // Add ambient light and output
-        illum = illum + ambientLight;
-        gl_FragColor = vec4(illum, 1.0);
-    }
-`;
-
-/**
- * White pixel stars on transparent background
- */
-Shaders.pixel.starry = `
-    varying vec3 vNormal;
-    
-    // Pseudorandom noise function
-    float pRandom (vec2 coords) {
-        return fract(sin(dot(coords.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    }
-    
-    // Start
-    void main() {
-        
-        vec2 coords = vec2(gl_FragCoord[0], gl_FragCoord[1]);
-        if (pRandom(coords) > 0.99) {
-            gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);  // Draw a star
+        // Draw outward pointing transparent and dark, all others opaque and bright
+        float outwardness = 1.0 - length(refNormal - vNormal);
+        if (outwardness > 0.2) {
+            opacity = 1.0 - outwardness;
+            shadow = 0.0;
         } else {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);  // Draw nothing
+            opacity = 1.0;
+            shadow = outwardness;
         }
+        
+        // Add ambient light and shadow, and output
+        illum = (illum + ambientLight) * (1.0 - shadow);
+        gl_FragColor = vec4(illum, opacity);
     }
 `;
 
 /**
- * Screen-mapped starfield texture that scrolls
+ * Screen-mapped scrolling, twinkling stars
  */
 Shaders.pixel.scrollingStars = `
     uniform float time;
@@ -547,10 +319,26 @@ Shaders.pixel.scrollingStars = `
     uniform float screenHeight;
     varying vec3 vNormal;
     
+    // Pseudorandom noise function
+    float pRandom (vec2 coords) {
+        return fract(sin(dot(coords.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+    
     void main() {
         
+        // Determine whether to twinkle
+        float twinkleFactor;
+        vec2 coords = vec2(gl_FragCoord.x, gl_FragCoord.y);
+        if (pRandom(coords * time) > 0.93) {
+            twinkleFactor = 0.0;
+        } else {
+            twinkleFactor = 1.0;
+        }
+        
         // Map the texture to screen space and scroll
-        gl_FragColor = texture2D(starFieldTexture, vec2(gl_FragCoord.x / screenHeight + time / 32.0, gl_FragCoord.y / screenHeight));
+        vec4 stars = texture2D(starFieldTexture, vec2(gl_FragCoord.x / screenHeight + time / 32.0, gl_FragCoord.y / screenHeight));
+        vec4 twinklingStars = stars * twinkleFactor; 
+        gl_FragColor = twinklingStars;
     }
 `;
 

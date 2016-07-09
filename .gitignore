@@ -3,3 +3,5 @@ archive
 node_modules
 dist
 *.log
+src/audio/*
+*.blend1
