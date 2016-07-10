@@ -109,9 +109,9 @@
      borderopacity="0.28627451"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.35355339"
-     inkscape:cx="-1022.5686"
-     inkscape:cy="5108.4297"
+     inkscape:zoom="0.70710678"
+     inkscape:cx="460.56125"
+     inkscape:cy="1929.3382"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -130,7 +130,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
         <cc:license
            rdf:resource="http://creativecommons.org/publicdomain/zero/1.0/" />
       </cc:Work>
@@ -158,7 +158,7 @@
        x="-1533.0074"
        y="-4955.2173" />
     <image
-       sodipodi:absref="C:\Users\non\Downloads\Kezenoy-lake.jpg"
+       sodipodi:absref="C:\Users\non\Docs\code\web\webapps\sonografi\designs\Kezenoy-lake.jpg"
        xlink:href="Kezenoy-lake.jpg"
        width="1280"
        height="850"
@@ -167,7 +167,7 @@
        x="-1075.714"
        y="8.2840033" />
     <image
-       sodipodi:absref="C:\Users\non\Downloads\North_America_from_low_orbiting_satellite_Suomi_NPP.jpg"
+       sodipodi:absref="C:\Users\non\Docs\code\web\webapps\sonografi\designs\North_America_from_low_orbiting_satellite_Suomi_NPP.jpg"
        xlink:href="North_America_from_low_orbiting_satellite_Suomi_NPP.jpg"
        width="8000"
        height="8000"
@@ -176,7 +176,7 @@
        x="-11532"
        y="-5309.6377" />
     <image
-       sodipodi:absref="C:\Users\non\Downloads\water depth.jpg"
+       sodipodi:absref="C:\Users\non\Docs\code\web\webapps\sonografi\designs\water depth.jpg"
        xlink:href="water depth.jpg"
        width="600"
        height="400"
@@ -239,9 +239,9 @@
        height="263.05063"
        width="263.05063"
        id="rect3082-1"
-       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#eeeeec;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;filter-blend-mode:normal;filter-gaussianBlur-deviation:0" />
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#001e55;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate;filter-blend-mode:normal;filter-gaussianBlur-deviation:0" />
     <rect
-       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#eeeeec;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+       style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#001551;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
        id="rect3084-7"
        width="263.05063"
        height="263.05063"

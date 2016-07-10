@@ -45,7 +45,7 @@ class Viewport {
         this.renderer = new THREE.WebGLRenderer({canvas: canvas, alpha: true});
         this.renderer.setClearColor(color, opacity);
         this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, true);  // True = autoresize on
-        this.camera.position.z = 4.0;
+        this.camera.position.z = 3.8;
 
         // Start viewport animation loop
         this.startAnimationLoop();

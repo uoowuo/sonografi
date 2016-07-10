@@ -14,6 +14,7 @@ var STLLoader = require('three-stl-loader')(THREE);
  * @todo favicon
  * @todo reduce earth.dae size
  * @todo yslow
+ * @todo white land version as well, perhaps as reaction to amplitude buildup
  *
  * @requires  viewport
  * @requires  shaders
@@ -52,17 +53,21 @@ class Sonografi {
         // @todo make the ocean change color to music, for epic win
         this.shaderUniforms = {
             time:             this.viewport.timeUniform,
-            amplitude:        this.sound.amplitudeUniform,
+            amplitude:        this.sound.amplitudeUniform,    // Pass-by-reference
+            amplitudes:       this.sound.amplitudesUniform,   // Pass-by-reference
+            frequency:        this.sound.frequencyUniform,    // Pass-by-reference
+            frequencies:      this.sound.frequenciesUniform,  // Pass-by-reference
+            streak:           this.sound.streakUniform,       // Pass-by-reference
             starFieldTexture: {type: 't', value: starFieldTexture},
             screenHeight:     {type: 'f', value: document.body.clientHeight},
             cameraPosition:   {type: 'v3', value: this.viewport.camera.position},
             gradientColors:   {type: 'v3v', value: [
-                new THREE.Color(0x010c47),
-                new THREE.Color(0x010c47),
-                new THREE.Color(0x00295d),
-                new THREE.Color(0x5ed9d5)
+                new THREE.Color(0x001551),
+                new THREE.Color(0x001551),
+                new THREE.Color(0x001551),
+                new THREE.Color(0x010c47)
             ]},
-            gradientStops:   {type: 'fv', value: [0.0, 0.33, 0.66, 1.0]}
+            gradientStops:   {type: 'fv', value: [0.0, 0.73, 0.96, 1.0]}
         };
 
         // Setup shared shader uniforms
@@ -78,8 +83,9 @@ class Sonografi {
         // @todo use buffergeometry where practical
         // @todo try fresnel
         // @todo exploded colorful crap in orbit or clouds maybe or just atmosphere
+        // @todo what's with the giant ocean, maybe rotate in another axis as well to bypass it
         var EarthRotationAxis = new THREE.Vector3(0, 1, 0);
-        var rotationAngle = 0.002;
+        var rotationAngle = 0.0003;
         this.sky = this.makeSphere(80000, 1, Shaders.vertex.plain, Shaders.pixel.scrollingStars, THREE.BackSide);
         this.ocean = this.makeSphere(1.3, 5, Shaders.vertex.wavy, Shaders.pixel.oceanic, THREE.FrontSide, true);
         this.ocean.renderOrder = 2;

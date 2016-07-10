@@ -4,8 +4,8 @@
 class Util {
 
     /**
-     * Decodes URI parameters
-     *
+     * Decodes URI parameters.
+     * @todo unused, remove
      * @returns  {Object}  An Object containing parsed URI parameters
      */
     static getParams () {
@@ -36,7 +36,7 @@ class Util {
     }
     
     /**
-     * Prevents browser from playing/downloading the dragged file and allows JS handling
+     * Prevents browser from playing/downloading the dragged file and allows JS handling.
      * 
      * @param  {Event}  dragoverEvent  Dragover event object
      */

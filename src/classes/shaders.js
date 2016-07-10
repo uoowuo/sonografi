@@ -15,6 +15,21 @@ class Shaders {
  */
 Shaders.libs = {};
 
+/**
+ * That number, you know
+ */
+Shaders.libs.PI = `
+    #define PI 3.1415926535897932384626433832795
+`;
+
+/**
+ * Analysis resolution settings
+ */
+Shaders.libs.resolutionSettings = `
+    #define amplitudeResolution 64
+    #define frequencyResolution 128
+`;
+
 /////////////////////
 // Vertex shaders //
 ///////////////////
@@ -75,9 +90,14 @@ Shaders.vertex.wavy = `
  * Outward face extrusion
  */
 Shaders.vertex.extruded = `
+    ${Shaders.libs.PI}
+    ${Shaders.libs.resolutionSettings}
     varying vec3 vNormal;
     uniform float time;
     uniform float amplitude;
+    uniform float amplitudes[amplitudeResolution];
+    uniform float frequency;
+    uniform float frequencies[frequencyResolution];
     uniform vec3 earthOrigin;
     varying vec3 vPosition;
     
@@ -87,19 +107,25 @@ Shaders.vertex.extruded = `
     }
 
     void main() {
-        vNormal = normal;      // Vertex normal
-        vPosition = position;  // Vertex position
-        const float extrudeHeight = 2.5;
-        vec3 finalPosition;
+        vNormal = normal;                 // Vertex normal
+        vPosition = position;             // Vertex position
+        const float extrudeHeight = 2.5;  // Fixed height modifier for extrusions
+        const vec3 rippleStartNormal = vec3(0.0, 1.0, 0.0);  // Vector pointing at the starting point of extrusion ripples
+        float polarCoordPosition;         // Position of a vertex in polar coordinate system with origin at rippleStartNormal angle;
+        vec3 refNormal;                   // Radius vector starting at object origin and pointing towards the current vertex. We will use
+                                          // it to detect vertices whose normals point outwards
+        float extrusionFactor;            // Dynamic extrusion height modifier
+        vec3 finalPosition;               // End result
         
-        // Radius vector starting at object origin and pointing towards the current vertex
-        // We will use it to detect vertices whose normals point outwards 
-        vec3 refNormal = normalize(position - earthOrigin);
-        
+        refNormal = normalize(position - earthOrigin);
+        // polarCoordPosition = acos(dot(rippleStartNormal, refNormal)) / PI;  // Origin at pole
+        polarCoordPosition = abs((acos(dot(rippleStartNormal, refNormal)) / PI) - 0.5) * 2.0;  // Origin at equator
+        extrusionFactor = frequencies[int(polarCoordPosition * float(frequencyResolution))] / 19.0;
+               
         // Extrude faces whose normals point outwards
         if (length(refNormal - normal) < 1.4) {
-            finalPosition = position + refNormal * pow(amplitude, 3.0) * extrudeHeight / 4096.0;
-            // finalPosition = position + normal * pow(amplitude, 2.0) * extrudeHeight * sin(pRandom(position)) / 900.0;
+            finalPosition = position + refNormal * pow(extrusionFactor, 3.0) * extrudeHeight * sin(pRandom(vec3(time, position.x, position.y))) / 16384.0;  // Fire
+            // finalPosition = position + refNormal * pow(extrusionFactor, 3.0) * extrudeHeight / 16384.0;
         } else {
             finalPosition = position;
         }
@@ -120,70 +146,9 @@ Shaders.vertex.extruded = `
 Shaders.pixel = {};  // Pixel shaders
 
 /**
- * Waterlike legacy
- */
-Shaders.pixel.oceanicMid = `
-    varying vec3 vNormal;
-    uniform float time;
-    uniform float screenHeight;
-    
-    void main() {
-    
-        vec3 ambientLight = vec3(0.0, 0.0, 0.1);  // Ambient blue
-        
-        // Positional light data type
-        struct Light {
-            vec3 position;      // Position in 3D
-            vec3 color;         // Color code
-            float illumFactor;  // How much this light shines upon current pixel
-        };
-        
-        // Define positional lights
-        const int lightsLength = 6;
-        Light lights[lightsLength];
-        
-        vec3 cyan = vec3(0.0, 0.75, 1.0);
-        vec3 blue = vec3(0.0, 0.0, 1.0);
-        vec3 darkBlue = vec3(0.0, 0.0, 0.4);
-        vec3 black = vec3(0.0, 0.0, 0.0);
-        
-        lights[0].position = normalize(vec3(0.0,  1.0,  0.0));   // Top
-        lights[1].position = normalize(vec3(0.0, -1.0,  0.0));   // Bottom
-        lights[2].position = normalize(vec3(0.0,  0.0,  1.0));   // Front
-        lights[3].position = normalize(vec3(0.0,  0.0,  -1.0));  // Back
-        lights[4].position = normalize(vec3(1.0,  0.0, 0.0));    // Right
-        lights[5].position = normalize(vec3(-1.0, 0.0, 0.0));    // Left
-        
-        lights[0].color = cyan;
-        lights[1].color = cyan;
-        lights[2].color = blue;
-        lights[3].color = blue;
-        lights[4].color = cyan;
-        lights[5].color = cyan;
-        
-        // Compute light illumination factors for every light
-        for (int i = 0; i < lightsLength; i++) {
-            lights[i].illumFactor = max(0.0, dot(vNormal, lights[i].position));
-        }
-        
-        // Reduce everything to a color vector by multiplying R, G & B components of lights
-        // by their illumination factors and adding it all up
-        vec3 illum = vec3(0.0);
-        for (int n = 0; n < 3; n++) {
-            for (int i = 0; i < lightsLength; i++) {
-                illum[n] += lights[i].color[n] * lights[i].illumFactor;
-            }
-        }
-        
-        // Add ambient light and output
-        illum = illum + ambientLight;
-        gl_FragColor = vec4(illum, 0.8);
-    }
-`;
-
-/**
  * Waterlike, with depth
  * @todo make water under camera transparent too, z-clip stuff perhaps
+ * @todo add wave speculars
  */
 Shaders.pixel.oceanic = `
 
@@ -191,6 +156,8 @@ Shaders.pixel.oceanic = `
     
     uniform float time;
     uniform float screenHeight;
+    uniform float amplitude;
+    uniform float streak;
     uniform vec3 oceanOrigin;                         // Object center in world space
     uniform vec3 gradientColors[gradientColorCount];  // Array of colors for radial gradient
     uniform float gradientStops[gradientColorCount];  // Color positions for radial gradient 
@@ -203,12 +170,12 @@ Shaders.pixel.oceanic = `
         float gradientPoint;   // Position of the current point within the gradient, 0..1
         vec3 gradientFactors;  // How much of every gradient color is at this point 
         vec3 gradient;         // Computed gradient color for current pixel
-        // vec3 ambientLight = vec3(0.0, 0.0, 0.1);  // Ambient lighting to add
-        vec3 ambientLight = vec3(0.0);  // Ambient lighting to add
+        float luminance;       // Additional light emission
     
         vec3 cameraDirection = normalize(cameraPosition - oceanOrigin);  // Points from object center to camera
-        depth = 1.0 - length(vWorldNormal - cameraDirection);  // Depth increases towards object center
+        depth = 1.0 - length(vWorldNormal - cameraDirection);            // Depth increases towards object center
         gradientPoint = (1.0 - depth);                                   // Gradient goes from depth to shallow
+        luminance = streak / 128.0;                                      // Make it glow on streak
         
         // Compute gradient factors based on gradient stops and current point's position 
         for (int grad = 0; grad < gradientColorCount; grad++) {
@@ -223,17 +190,14 @@ Shaders.pixel.oceanic = `
             }
         }
    
-        // Add ambient light and depth, and output
-        // First, remove colot from the deep parts, then replace it with the depthColor
-        // illum = illum * (1.0 - depth) + depth * depthColor;
-        // illum = (illum + ambientLight) * 2.0 * (1.0 - depth) + depth * depthColor;
-        // gl_FragColor = vec4(illum, 1.0);
-        gl_FragColor = vec4(gradient + ambientLight, pow(depth, 0.8) * 4.0);
+        // Add luminance and depth, and output
+        gl_FragColor = vec4(gradient + luminance, pow(depth, 0.8) * 4.0);
     }
 `;
 
 /**
  * Party tiem
+ * @todo alternative shader for mobile or fix mobile other way
  */
 Shaders.pixel.disco = `
     varying vec3 vNormal;
