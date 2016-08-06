@@ -1,13 +1,11 @@
 /**
  * Contains vertex and fragment (pixel) shaders
  */
-class Shaders {
-    
-}
+class Shaders {}
 
-////////////////
-// Libraries //
-//////////////
+  ///////////////
+ // Libraries //
+///////////////
 
 /**
  * Shader library code
@@ -30,9 +28,9 @@ Shaders.libs.resolutionSettings = `
     #define frequencyResolution 128
 `;
 
-/////////////////////
-// Vertex shaders //
-///////////////////
+  ////////////////////
+ // Vertex shaders //
+////////////////////
 
 /**
  * Vertex shaders list
@@ -75,13 +73,14 @@ Shaders.vertex.wavy = `
         const float waveRes = 25.0;     // Wave resolution
         const float speed = 2.0;        // Wave movement speed
         
+        // Wave & output
         vec3 pos = position + normal * waveHeight
             * (
                 sin(position.x * waveRes + 0.0 + time * speed)
                 + cos(position.y * waveRes + 3.0 + time * speed)
                 + cos(position.z * waveRes + 6.0 + time * speed)
             );
-        
+            
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
     }
 `;
@@ -95,9 +94,9 @@ Shaders.vertex.extruded = `
     varying vec3 vNormal;
     uniform float time;
     uniform float amplitude;
-    uniform float amplitudes[amplitudeResolution];
+    uniform float amplitudes[32];
     uniform float frequency;
-    uniform float frequencies[frequencyResolution];
+    uniform float frequencies[32];
     uniform vec3 earthOrigin;
     varying vec3 vPosition;
     
@@ -110,7 +109,8 @@ Shaders.vertex.extruded = `
         vNormal = normal;                 // Vertex normal
         vPosition = position;             // Vertex position
         const float extrudeHeight = 2.5;  // Fixed height modifier for extrusions
-        const vec3 rippleStartNormal = vec3(0.0, 1.0, 0.0);  // Vector pointing at the starting point of extrusion ripples
+        const vec3 rippleStartNormal = vec3(0.0, 1.0, 0.0);  // Vector pointing at the starting point of extrusion ripples 
+        const float fireSpeed = 0.00001;  // Speed of spike movement
         float polarCoordPosition;         // Position of a vertex in polar coordinate system with origin at rippleStartNormal angle;
         vec3 refNormal;                   // Radius vector starting at object origin and pointing towards the current vertex. We will use
                                           // it to detect vertices whose normals point outwards
@@ -121,11 +121,12 @@ Shaders.vertex.extruded = `
         // polarCoordPosition = acos(dot(rippleStartNormal, refNormal)) / PI;  // Origin at pole
         polarCoordPosition = abs((acos(dot(rippleStartNormal, refNormal)) / PI) - 0.5) * 2.0;  // Origin at equator
         extrusionFactor = frequencies[int(polarCoordPosition * float(frequencyResolution))] / 19.0;
-               
+
         // Extrude faces whose normals point outwards
         if (length(refNormal - normal) < 1.4) {
-            finalPosition = position + refNormal * pow(extrusionFactor, 3.0) * extrudeHeight * sin(pRandom(vec3(time, position.x, position.y))) / 16384.0;  // Fire
-            // finalPosition = position + refNormal * pow(extrusionFactor, 3.0) * extrudeHeight / 16384.0;
+            float fireComponent = sin(pRandom(vec3(time * fireSpeed, position.x, position.y)));
+            finalPosition = position + refNormal * pow(extrusionFactor, 3.3) * extrudeHeight * fireComponent/ 40000.0;  // Fire
+            // finalPosition = position + refNormal * pow(extrusionFactor, 3.0) * extrudeHeight / 16384.0; // Crystal
         } else {
             finalPosition = position;
         }
@@ -134,10 +135,9 @@ Shaders.vertex.extruded = `
     }
 `;
 
-
-////////////////////
-// Pixel shaders //
-//////////////////
+  ////////////////////
+ // Pixel shaders //
+///////////////////
 
 /**
  * Pixel shaders list
@@ -146,14 +146,13 @@ Shaders.vertex.extruded = `
 Shaders.pixel = {};  // Pixel shaders
 
 /**
- * Waterlike, with depth
+ * Waterlike, with depth, legacy
  * @todo make water under camera transparent too, z-clip stuff perhaps
  * @todo add wave speculars
  */
-Shaders.pixel.oceanic = `
+Shaders.pixel.oceanicLegacy =  `
+    const int gradientColorCount = 3;                 // Number of gradient colors in use
 
-    const int gradientColorCount = 4;  // Number of gradient colors in use
-    
     uniform float time;
     uniform float screenHeight;
     uniform float amplitude;
@@ -191,7 +190,60 @@ Shaders.pixel.oceanic = `
         }
    
         // Add luminance and depth, and output
-        gl_FragColor = vec4(gradient + luminance, pow(depth, 0.8) * 4.0);
+        gl_FragColor = vec4(gradient + luminance, pow(depth, 0.8) * 3.0);
+    }
+`;
+
+/**
+ * Waterlike, with depth, hue changes and luminance per amplitude
+ * @todo make water under camera transparent too, z-clip stuff perhaps
+ * @todo add wave speculars
+ */
+Shaders.pixel.oceanic =  `
+    const int gradientColorCount = 3;                 // Number of gradient colors in use
+
+    uniform float time;
+    uniform float screenHeight;
+    uniform float frequency;
+    uniform float amplitude;
+    uniform float streak;
+    uniform vec3 oceanOrigin;                         // Object center in world space
+    uniform vec3 gradientColors[gradientColorCount];  // Array of colors for radial gradient
+    uniform float gradientStops[gradientColorCount];  // Color positions for radial gradient 
+    varying vec3 vNormal;                             // Surface normal in object space
+    varying vec3 vWorldNormal;                        // Surface normal in world space
+    
+    void main() {
+    
+        float depth;           // Apparent water depth at point
+        float gradientPoint;   // Position of the current point within the gradient, 0..1
+        vec3 gradientFactors;  // How much of every gradient color is at this point 
+        vec3 gradient;         // Computed gradient color for current pixel
+        float luminance;       // Additional light emission
+    
+        vec3 cameraDirection = normalize(cameraPosition - oceanOrigin);  // Points from object center to camera
+        depth = 1.0 - length(vWorldNormal - cameraDirection);            // Depth increases towards object center
+        gradientPoint = (1.0 - depth);                                   // Gradient goes from depth to shallow
+        luminance = frequency;                         // Make it glow a bit per amplitude
+        
+        // Compute gradient factors based on gradient stops and current point's position 
+        for (int grad = 0; grad < gradientColorCount; grad++) {
+            gradientFactors[grad] = 1.0 - abs(gradientStops[grad] - gradientPoint);
+        }
+        
+        // Compute gradient by multiplying R, G & B components of gradient colors
+        // by their gradient factors and adding it all up
+        for (int col = 0; col < 3; col++) {
+            for (int grad = 0; grad < gradientColorCount; grad++) {
+                gradient[col] += gradientColors[grad][col] * gradientFactors[grad];
+            }
+        }
+   
+        vec3 staticColor = gradient - luminance;
+        // vec3 variedColor = vec3(staticColor.r + sin(time), staticColor.g + sin(time), staticColor.b + sin(time));
+   
+        // Add luminance and depth, and output
+        gl_FragColor = vec4(gradient - luminance, pow(depth, 0.8) * 3.0);
     }
 `;
 

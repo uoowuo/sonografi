@@ -1,10 +1,12 @@
-var THREE = require('three');
+const THREE = require('three');
+const OrbitControls = require('three-orbit-controls')(THREE);
 
 /**
  * Represents a combination of canvas and Three.js scene, camera and renderer objects.
- * @todo cache properties, optimize, remove prerender function facility perhaps
  * @todo resizing at small widths
  * @todo restrict zooming
+ * @todo hide mouse cursor
+ * @todo make adjustments on resize see http://raathigesh.com/Audio-Visualization-with-Web-Audio-and-ThreeJS/
  * 
  * @requires  THREE
  */
@@ -13,8 +15,6 @@ class Viewport {
     /**
      * Creates a viewport object in a given canvas.
      * Functions defined in the constructor have local/private variable access.
-     * @todo make adjustments on resize see http://raathigesh.com/Audio-Visualization-with-Web-Audio-and-ThreeJS/
-     * @todo controls zoom limits
      *
      * @param  {HTMLElement}    canvas     Canvas DOM element to attach to
      * @param  {Number|String}  color      Background color in a format accepted by Three.js renderer
@@ -23,7 +23,7 @@ class Viewport {
     constructor (canvas, color, opacity = 1) {
 
         /**
-         * Render function bound to requestAnimationFrame.
+         * Rendering function bound looping through requestAnimationFrame.
          * @type  {Function}
          * @private
          */
@@ -31,7 +31,6 @@ class Viewport {
 
         /**
          * A list of functions to execute before each render.
-         * @todo replace function calls with inlining if needed
          * @type  {Object}
          * @private
          */
@@ -46,6 +45,7 @@ class Viewport {
         this.renderer.setClearColor(color, opacity);
         this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, true);  // True = autoresize on
         this.camera.position.z = 3.8;
+        this.controls = new OrbitControls(this.camera);
 
         // Start viewport animation loop
         this.startAnimationLoop();
@@ -57,24 +57,24 @@ class Viewport {
     startAnimationLoop () {
 
         // Cache properties
-        var renderer = this.renderer;
-        var scene = this.scene;
-        var camera = this.camera;
+        const renderer = this.renderer;
+        const scene = this.scene;
+        const camera = this.camera;
 
         // Rendering function
-        // @todo I am performance critical, optimize me
-        var closureThis = this;
+        // @todo I am performance critical, optimize me if needed
+        const this1 = this;
         this._render = function () {
 
             // Queue for next frame
-            requestAnimationFrame(closureThis._render);
+            requestAnimationFrame(this1._render);
 
             // Execute queued functions, iterating over an Object of Arrays (of functions),
             // with some variable caching
-            var keys = Object.keys(closureThis._animationList);
+            const keys = Object.keys(this1._animationList);
             for (let n = 0, l = keys.length; n < l; n++) {
-                for (let N = 0, L = closureThis._animationList[keys[n]].length; N < L; N++) {
-                    closureThis._animationList[keys[n]][N]();
+                for (let N = 0, L = this1._animationList[keys[n]].length; N < L; N++) {
+                    this1._animationList[keys[n]][N]();
                 }
             }
 
@@ -82,7 +82,7 @@ class Viewport {
             renderer.render(scene, camera);
 
             // Advance time
-            closureThis.timeUniform.value += 0.01;
+            this1.timeUniform.value += 0.01;
         };
 
         // Start rendering
@@ -132,8 +132,8 @@ class Viewport {
         if (typeof this._animationList[key] === 'undefined') { return []; }
 
         // Delete function array associated with key
-        var removedFunctions = this._animationList[key];
-        var success = delete this._animationList[key];
+        const removedFunctions = this._animationList[key];
+        const success = delete this._animationList[key];
 
         // If delete failed, return empty array
         if (! success) { return []; }

@@ -1,5 +1,5 @@
 /**
- * Sonografi, v1.2.0
+ * Sonografi, v1.3.1
  *
  * Description: Audio visualizer webapp made of ES2015 and WebGL.
  * License: GPLv3 http://www.gnu.org/licenses/gpl-3.0.html
@@ -10,20 +10,15 @@
  * @todo FF memleak?
  */
 
-import Shims from './classes/shims';
 import Sonografi from './classes/sonografi';
 
   ///////////////////////
  // Application start //
 ///////////////////////
 (function (globals) {
-
     'use strict';
-
-    // Apply shims
-    // @todo replace with modernizr
-    Shims.preventConsoleErrors();
-    Shims.forEachPolyfill();
+    
+    // @todo apply third-party shims here with modernizr
 
     // Start the application
     document.addEventListener('DOMContentLoaded', function (event) {

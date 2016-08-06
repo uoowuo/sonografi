@@ -12,11 +12,11 @@ class Sound {
      */
     constructor () {
 
-        var closureThis = this;
+        const this1 = this;
         this.amplitudeUniform = {type: 'f', value: 0};      // Sound amplitude digest value in Three.js shader uniform format
-        this.amplitudesUniform = {type: 'fv', value: []};   // Sound amplitudes array in Three.js shader uniform format
+        this.amplitudesUniform = {type: 'fv', value: new Float32Array(32)};   // Sound amplitudes array in Three.js shader uniform format
         this.frequencyUniform = {type: 'f', value: 0};      // Sound frequency digest in Three.js shader uniform format
-        this.frequenciesUniform = {type: 'fv', value: []};  // Sound frequencies array in Three.js shader uniform format
+        this.frequenciesUniform = {type: 'fv', value: new Float32Array(32)};  // Sound frequencies array in Three.js shader uniform format
         this.streakUniform = {type: 'f', value: 0};         // Softly rising and falling streak indicator
 
         // Setup analysis
@@ -36,28 +36,31 @@ class Sound {
 
         // Run streak detector
         // @todo better detect based on time sequence analysis or at least determine a baselevel for the song at the start, for threshold
-        // @todo OOP this
-        var streakStack = 0;
-        const detectionThreshold = 196;  // When to add excess amplitude to streakStack
-        const streakThreshold = 128;     // When to start a streak
-        const streakReserve = 302;       // Streak stability to fluctuations
-        const streakGain = 32;           // How fast a streak comes when amplitude increases
+        // @todo OOP this maybe
+        // @todo it's crap, see linear regression etc.
+        let streakStack = 0;
+        const detectionThreshold = 128;  // When to add excess amplitude to streakStack
+        const streakThreshold = 860;     // When to start a streak
+        const streakReserve = 3000;      // Streak stability to fluctuations
+        const streakGain = 1;            // How fast a streak comes when amplitude increases
         this.streakActive = false;
+        this.streakWasActive = false;
         this.streakHandle = setInterval(function() {
 
             // Add up to detection
-            if (closureThis.amplitudeUniform.value > detectionThreshold) {
-                streakStack = (streakStack < streakReserve) ? streakStack + (closureThis.amplitudeUniform.value - detectionThreshold) * streakGain : streakStack;
+            if (this1.amplitudeUniform.value > detectionThreshold) {
+                streakStack = (streakStack < streakReserve) ? streakStack + (this1.amplitudeUniform.value - detectionThreshold) * streakGain : streakStack;
             } else {
-                streakStack = (streakStack > 0) ? streakStack - (detectionThreshold - closureThis.amplitudeUniform.value) : streakStack;
+                streakStack = (streakStack > 0) ? streakStack - (detectionThreshold - this1.amplitudeUniform.value) : streakStack;
             }
 
             // Detect and start a streak or stop a running streak
+            this1.streakWasActive = this1.streakActive;
             if (streakStack > streakThreshold) {
-                closureThis.streakActive = true;   // Start the streak
-                streakStack = streakReserve;       // And make sure it doesn't immediately fade
+                this1.streakActive = true;    // Start the streak
+                streakStack = (! this1.streakWasActive) ? streakReserve : streakStack;  // And make sure it doesn't immediately fade
             } else {
-                closureThis.streakActive = false;  // Stop the streak
+                this1.streakActive = false;  // Stop the streak
             }
         }, 133);
     }
@@ -72,30 +75,32 @@ class Sound {
     startAnalysis (audioContext, fftSize) {
 
         // Setup analyser node
-        var analyser = audioContext.createAnalyser();
+        const analyser = audioContext.createAnalyser();
         analyser.fftSize = fftSize;
 
         // Start analysis loop and return
-        var closureThis = this;
-        var audioFrameTimeBuffer = new Uint8Array(analyser.fftSize / 2);
-        var audioFrameFreqBuffer = new Uint8Array(analyser.frequencyBinCount);
+        const this1 = this;
+        const useBins = 32;
+        const audioFrameTimeBuffer = new Uint8Array(analyser.fftSize / 2);
+        const audioFrameFreqBuffer = new Uint8Array(analyser.frequencyBinCount);
         const sum = (a, b) => { return a + b };
-        var analysisLoop = function() {
+        const analysisLoop = function() {
             requestAnimationFrame(analysisLoop);
 
             // Put data where data belongs
             analyser.getByteTimeDomainData(audioFrameTimeBuffer);
             analyser.getByteFrequencyData(audioFrameFreqBuffer);
-            closureThis.amplitudeUniform.value = audioFrameTimeBuffer.reduce(sum) / (analyser.fftSize / 2);
-            closureThis.amplitudesUniform.value = audioFrameTimeBuffer;
-            closureThis.frequencyUniform.value = audioFrameFreqBuffer.reduce(sum) / (analyser.fftSize / 2);        // Maybe slice here too
-            closureThis.frequenciesUniform.value = audioFrameFreqBuffer.slice(Math.floor(analyser.fftSize / 64));  // Because aliasing at high frequencies
+            this1.amplitudeUniform.value = audioFrameTimeBuffer.reduce(sum) / (analyser.fftSize / 2);
+            this1.amplitudesUniform.value.set(audioFrameTimeBuffer.slice(0, useBins));
+            this1.frequencyUniform.value = audioFrameFreqBuffer.reduce(sum) / (analyser.fftSize / 2);        // Maybe slice here too
+            const cutOffFreqBins = Math.floor(analyser.fftSize / 64);  // Because aliasing at high frequencies
+            this1.frequenciesUniform.value.set(audioFrameFreqBuffer.slice(cutOffFreqBins, cutOffFreqBins + useBins));
 
             // Ramp streak up or down
-            if (closureThis.streakActive === true) {
-                closureThis.streakUniform.value = (closureThis.streakUniform.value < 127) ? closureThis.streakUniform.value + 1 : closureThis.streakUniform.value;
+            if (this1.streakActive === true) {
+                this1.streakUniform.value = (this1.streakUniform.value < 127) ? this1.streakUniform.value + 1 : this1.streakUniform.value;
             } else {
-                closureThis.streakUniform.value = (closureThis.streakUniform.value > 0) ? closureThis.streakUniform.value - 1 : closureThis.streakUniform.value;
+                this1.streakUniform.value = (this1.streakUniform.value > 0) ? this1.streakUniform.value - 1 : this1.streakUniform.value;
             }
         };
         analysisLoop();
@@ -110,11 +115,11 @@ class Sound {
      */
     decode (buffer) {
 
-        var closureThis = this;
+        const this1 = this;
         this.audioContext.decodeAudioData(buffer,
             function (decodedBuffer) {
-                closureThis.sourceBuffer.buffer = decodedBuffer;
-                closureThis.sourceBuffer.start(0);
+                this1.sourceBuffer.buffer = decodedBuffer;
+                this1.sourceBuffer.start(0);
             },
             function () {
                 throw new Error('Audio decoding failed');
